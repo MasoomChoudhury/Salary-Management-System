@@ -73,10 +73,10 @@ export const AdminSidebar = ({ role, onLogout, user }: AdminSidebarProps) => {
                 </Button>
             </div>
 
-            <nav className="flex-1 p-3 space-y-1">
+            <nav className="flex-1 px-3 py-2 space-y-0.5">
                 {!collapsed && (
-                    <div className="px-3 mb-2">
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">Navigation</p>
+                    <div className="px-3 mb-1.5 mt-2">
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/40">Navigation</p>
                     </div>
                 )}
                 {items.map((item) => (
@@ -85,14 +85,14 @@ export const AdminSidebar = ({ role, onLogout, user }: AdminSidebarProps) => {
                         to={item.href}
                         end
                         className={({ isActive }) => cn(
-                            'flex items-center gap-3 px-3 py-1.5 rounded-lg transition-all duration-200 group',
+                            'flex items-center gap-2.5 px-3 py-1.5 rounded-lg transition-all duration-200 group',
                             isActive
                                 ? 'bg-primary/20 text-primary border border-primary/30'
                                 : 'text-muted-foreground hover:bg-white/5 hover:text-foreground'
                         )}
                     >
-                        <item.icon size={20} className={cn('min-w-[20px]', !collapsed && 'group-hover:scale-110 transition-transform')} />
-                        {!collapsed && <span className="font-medium whitespace-nowrap">{item.name}</span>}
+                        <item.icon size={18} className={cn('min-w-[18px]', !collapsed && 'group-hover:scale-110 transition-transform')} />
+                        {!collapsed && <span className="text-sm font-medium whitespace-nowrap">{item.name}</span>}
                     </NavLink>
                 ))}
             </nav>

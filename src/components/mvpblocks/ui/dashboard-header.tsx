@@ -10,7 +10,7 @@ export const DashboardHeader = ({ title }: { title: string }) => {
                 <Button variant="ghost" size="icon" className="md:hidden">
                     <Menu size={20} />
                 </Button>
-                <h1 className="text-xl font-bold gradient-text hidden sm:block">{title}</h1>
+                <h1 className="text-lg font-bold gradient-text hidden sm:block">{title}</h1>
             </div>
 
             <div className="flex-1 max-w-md hidden md:block">
