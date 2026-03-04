@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "skills": {
+    "auth0-quickstart": {
+      "source": "auth0/agent-skills",
+      "sourceType": "github",
+      "computedHash": "896afcad4020948064384b3916fadcca2d8858b1cadc8b413f6871c36dcc9651"
+    },
+    "auth0-react": {
+      "source": "auth0/agent-skills",
+      "sourceType": "github",
+      "computedHash": "152ee28bbaa45bff25e9df116d3233343aefdf76a25f903f57190ef3b7d08e47"
+    },
+    "firebase-auth-basics": {
+      "source": "firebase/agent-skills",
+      "sourceType": "github",
+      "computedHash": "dc0f5eb514504721993982202627440da3b52b01beaf136471a8c3517e298652"
+    },
+    "firebase-basics": {
+      "source": "firebase/agent-skills",
+      "sourceType": "github",
+      "computedHash": "8a60cf1bfb567805bc70395842dcbd18bc00ee1898adaae2a472050fa24311eb"
+    },
+    "neon-postgres": {
+      "source": "neondatabase/agent-skills",
+      "sourceType": "github",
+      "computedHash": "574cf4b7c901ebc7d88d34e2c3e3d08fdec127bd0047f888de148ff0af787d4e"
+    }
+  }
+}

@@ -1,0 +1,283 @@
+/**
+ * INSTRUCTIONS FOR COPY-PASTE:
+ * 1. Go to MVPBlocks and pick a Pricing block
+ * 2. Copy the component code
+ * 3. Replace EVERYTHING below the imports with the pasted code
+ * 4. Remove 'use client' at the top if present
+ * 5. Change: import { cn } from '@/lib/utils'  ← keep this (it works)
+ * 6. Change: import { Button } from '@/components/ui/button'
+ *       TO:  import { Button } from '@/components/mvpblocks/ui/button'
+ * 7. Remove any `next/font` imports — use inline style for fonts
+ * 8. The component MUST be exported as: export default function PricingSection()
+ * 9. Save — Vite hot-reloads automatically.
+ */
+
+'use client';
+
+import { buttonVariants } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { useMediaQuery } from '@/hooks/use-media-query';
+import { cn } from '@/lib/utils';
+import { motion } from 'framer-motion';
+import { Check, Star } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { useState, useRef } from 'react';
+import confetti from 'canvas-confetti';
+import NumberFlow from '@number-flow/react';
+
+// PayPulse pricing — per employee per month (INR)
+const plans = [
+    {
+        name: 'STARTER',
+        price: '49',
+        yearlyPrice: '39',
+        period: 'per employee / mo',
+        features: [
+            'Up to 50 employees',
+            'One-click payroll runs',
+            'Salary slips & Form 16',
+            'EPF, ESI, PT auto-computation',
+            'Labour Code 2026 compliance',
+            'Email support',
+        ],
+        description: 'Perfect for small teams getting started with organised payroll.',
+        buttonText: 'Start Free Trial',
+        href: '/login',
+        isPopular: false,
+    },
+    {
+        name: 'GROWTH',
+        price: '99',
+        yearlyPrice: '79',
+        period: 'per employee / mo',
+        features: [
+            'Up to 500 employees',
+            'Everything in Starter',
+            'AI Anomaly Detection',
+            'On-Demand Pay (EWA)',
+            'Flexi-Benefits Wallet',
+            'Multi-location payroll',
+            'Priority support',
+        ],
+        description: 'For growing companies that need AI-powered payroll automation.',
+        buttonText: 'Get Started',
+        href: '/login',
+        isPopular: true,
+    },
+    {
+        name: 'ENTERPRISE',
+        price: '149',
+        yearlyPrice: '119',
+        period: 'per employee / mo',
+        features: [
+            'Unlimited employees',
+            'Everything in Growth',
+            'Dedicated account manager',
+            'Custom salary structures',
+            'HRMS & ERP integrations',
+            'SSO & advanced security',
+            'Custom SLA & contracts',
+        ],
+        description: 'For large organisations with complex pay structures and integrations.',
+        buttonText: 'Contact Sales',
+        href: '/login',
+        isPopular: false,
+    },
+];
+
+interface PricingPlan {
+    name: string;
+    price: string;
+    yearlyPrice: string;
+    period: string;
+    features: string[];
+    description: string;
+    buttonText: string;
+    href: string;
+    isPopular: boolean;
+}
+
+interface PricingProps {
+    plans: PricingPlan[];
+    title?: string;
+    description?: string;
+}
+
+export default function CongestedPricing() {
+    const [isMonthly, setIsMonthly] = useState(true);
+    const isDesktop = useMediaQuery('(min-width: 768px)');
+    const switchRef = useRef<HTMLButtonElement>(null);
+
+    const handleToggle = (checked: boolean) => {
+        setIsMonthly(!checked);
+        if (checked && switchRef.current) {
+            const rect = switchRef.current.getBoundingClientRect();
+            const x = rect.left + rect.width / 2;
+            const y = rect.top + rect.height / 2;
+
+            confetti({
+                particleCount: 50,
+                spread: 60,
+                origin: {
+                    x: x / window.innerWidth,
+                    y: y / window.innerHeight,
+                },
+                colors: [
+                    'hsl(var(--primary))',
+                    'hsl(var(--accent))',
+                    'hsl(var(--secondary))',
+                    'hsl(var(--muted))',
+                ],
+                ticks: 200,
+                gravity: 1.2,
+                decay: 0.94,
+                startVelocity: 30,
+                shapes: ['circle'],
+            });
+        }
+    };
+
+    return (
+        <div className="container mx-auto py-20">
+            <div className="mb-12 space-y-4 text-center">
+                <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
+                    Simple pricing. No hidden charges.
+                </h2>
+                <p className="text-muted-foreground text-base sm:text-lg">
+                    Pay only for the employees on your payroll.{' '}
+                    All plans include core compliance, payslips, and dedicated support.
+                </p>
+            </div>
+
+            <div className="mb-10 flex justify-center">
+                <label className="relative inline-flex cursor-pointer items-center">
+                    <Label>
+                        <Switch
+                            ref={switchRef as any}
+                            checked={!isMonthly}
+                            onCheckedChange={handleToggle}
+                            className="relative"
+                        />
+                    </Label>
+                </label>
+                <span className="ml-2 font-semibold">
+                    Annual billing <span className="text-primary">(Save 20%)</span>
+                </span>
+            </div>
+
+            <div className="sm:2 grid grid-cols-1 gap-4 md:grid-cols-3">
+                {plans.map((plan, index) => (
+                    <motion.div
+                        key={index}
+                        initial={{ y: 50, opacity: 1 }}
+                        whileInView={
+                            isDesktop
+                                ? {
+                                    y: plan.isPopular ? -20 : 0,
+                                    opacity: 1,
+                                    x: index === 2 ? -30 : index === 0 ? 30 : 0,
+                                    scale: index === 0 || index === 2 ? 0.94 : 1.0,
+                                }
+                                : {}
+                        }
+                        viewport={{ once: true }}
+                        transition={{
+                            duration: 1.6,
+                            type: 'spring',
+                            stiffness: 100,
+                            damping: 30,
+                            delay: 0.4,
+                            opacity: { duration: 0.5 },
+                        }}
+                        className={cn(
+                            `bg-background relative rounded-2xl border-[1px] p-6 text-center lg:flex lg:flex-col lg:justify-center`,
+                            plan.isPopular ? 'border-primary border-2' : 'border-border',
+                            'flex flex-col',
+                            !plan.isPopular && 'mt-5',
+                            index === 0 || index === 2
+                                ? 'z-0 translate-x-0 translate-y-0 -translate-z-[50px] rotate-y-[10deg] transform'
+                                : 'z-10',
+                            index === 0 && 'origin-right',
+                            index === 2 && 'origin-left',
+                        )}
+                    >
+                        {plan.isPopular && (
+                            <div className="bg-primary absolute top-0 right-0 flex items-center rounded-tr-xl rounded-bl-xl px-2 py-0.5">
+                                <Star className="text-primary-foreground h-4 w-4 fill-current" />
+                                <span className="text-primary-foreground ml-1 font-sans font-semibold">
+                                    Popular
+                                </span>
+                            </div>
+                        )}
+                        <div className="flex flex-1 flex-col">
+                            <p className="text-muted-foreground text-base font-semibold">
+                                {plan.name}
+                            </p>
+                            <div className="mt-6 flex items-center justify-center gap-x-2">
+                                <span className="text-foreground text-5xl font-bold tracking-tight">
+                                    <NumberFlow
+                                        value={
+                                            isMonthly ? Number(plan.price) : Number(plan.yearlyPrice)
+                                        }
+                                        format={{
+                                            style: 'currency',
+                                            currency: 'INR',
+                                            minimumFractionDigits: 0,
+                                            maximumFractionDigits: 0,
+                                        }}
+                                        transformTiming={{
+                                            duration: 500,
+                                            easing: 'ease-out',
+                                        }}
+                                        willChange
+                                        className="font-variant-numeric: tabular-nums"
+                                    />
+                                </span>
+                                {plan.period !== 'Next 3 months' && (
+                                    <span className="text-muted-foreground text-sm leading-6 font-semibold tracking-wide">
+                                        / {plan.period}
+                                    </span>
+                                )}
+                            </div>
+
+                            <p className="text-muted-foreground text-xs leading-5">
+                                {isMonthly ? 'billed monthly' : 'billed annually'}
+                            </p>
+
+                            <ul className="mt-5 flex flex-col gap-2">
+                                {plan.features.map((feature, idx) => (
+                                    <li key={idx} className="flex items-start gap-2">
+                                        <Check className="text-primary mt-1 h-4 w-4 flex-shrink-0" />
+                                        <span className="text-left">{feature}</span>
+                                    </li>
+                                ))}
+                            </ul>
+
+                            <hr className="my-4 w-full" />
+
+                            <Link
+                                to={plan.href}
+                                className={cn(
+                                    buttonVariants({
+                                        variant: 'outline',
+                                    }),
+                                    'group relative w-full gap-2 overflow-hidden text-lg font-semibold tracking-tighter',
+                                    'hover:bg-primary hover:text-primary-foreground hover:ring-primary transform-gpu ring-offset-current transition-all duration-300 ease-out hover:ring-2 hover:ring-offset-1',
+                                    plan.isPopular
+                                        ? 'bg-primary text-primary-foreground'
+                                        : 'bg-background text-foreground',
+                                )}
+                            >
+                                {plan.buttonText}
+                            </Link>
+                            <p className="text-muted-foreground mt-6 text-xs leading-5">
+                                {plan.description}
+                            </p>
+                        </div>
+                    </motion.div>
+                ))}
+            </div>
+        </div>
+    );
+}
