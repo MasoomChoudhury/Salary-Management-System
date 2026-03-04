@@ -5,7 +5,7 @@ import { Button } from './button';
 
 export const DashboardHeader = ({ title }: { title: string }) => {
     return (
-        <header className="h-20 border-b border-border/50 px-8 flex items-center justify-between gap-4 sticky top-0 glass z-40">
+        <header className="h-16 border-b border-border/50 px-6 flex items-center justify-between gap-4 sticky top-0 glass z-40">
             <div className="flex-1 flex items-center gap-4">
                 <Button variant="ghost" size="icon" className="md:hidden">
                     <Menu size={20} />

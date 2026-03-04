@@ -51,16 +51,16 @@ export const AdminSidebar = ({ role, onLogout, user }: AdminSidebarProps) => {
         <div
             className={cn(
                 'glass h-screen sticky top-0 flex flex-col transition-all duration-300 border-r border-border/50',
-                collapsed ? 'w-20' : 'w-64'
+                collapsed ? 'w-20' : 'w-60'
             )}
         >
-            <div className="p-6 flex items-center justify-between">
+            <div className="p-4 flex items-center justify-between">
                 {!collapsed && (
                     <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center font-bold text-lg text-primary-foreground">
+                        <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center font-bold text-base text-primary-foreground">
                             P
                         </div>
-                        <span className="font-bold text-xl tracking-tight gradient-text">PayPulse</span>
+                        <span className="font-bold text-lg tracking-tight gradient-text">PayPulse</span>
                     </div>
                 )}
                 <Button
@@ -73,14 +73,19 @@ export const AdminSidebar = ({ role, onLogout, user }: AdminSidebarProps) => {
                 </Button>
             </div>
 
-            <nav className="flex-1 px-4 py-4 space-y-2">
+            <nav className="flex-1 p-3 space-y-1">
+                {!collapsed && (
+                    <div className="px-3 mb-2">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">Navigation</p>
+                    </div>
+                )}
                 {items.map((item) => (
                     <NavLink
                         key={item.href}
                         to={item.href}
                         end
                         className={({ isActive }) => cn(
-                            'flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 group',
+                            'flex items-center gap-3 px-3 py-1.5 rounded-lg transition-all duration-200 group',
                             isActive
                                 ? 'bg-primary/20 text-primary border border-primary/30'
                                 : 'text-muted-foreground hover:bg-white/5 hover:text-foreground'
