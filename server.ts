@@ -53,6 +53,35 @@ async function initDb() {
     admin_id INTEGER
   )`;
 
+  // Migration: Add admin_id to users if not exists
+  try {
+    await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS admin_id INTEGER`;
+  } catch (e) {
+    // Fallback for older Postgres versions if IF NOT EXISTS fails
+    await sql`
+      DO $$ 
+      BEGIN 
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='admin_id') THEN 
+          ALTER TABLE users ADD COLUMN admin_id INTEGER; 
+        END IF; 
+      END $$;
+    `;
+  }
+
+  // Migration: Add admin_id to payroll_runs if not exists
+  try {
+    await sql`ALTER TABLE payroll_runs ADD COLUMN IF NOT EXISTS admin_id INTEGER`;
+  } catch (e) {
+    await sql`
+      DO $$ 
+      BEGIN 
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='payroll_runs' AND column_name='admin_id') THEN 
+          ALTER TABLE payroll_runs ADD COLUMN admin_id INTEGER; 
+        END IF; 
+      END $$;
+    `;
+  }
+
   await sql`CREATE TABLE IF NOT EXISTS payslips (
     id SERIAL PRIMARY KEY,
     payroll_run_id INTEGER REFERENCES payroll_runs(id),
