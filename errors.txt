@@ -1,0 +1,21 @@
+src/components/GlobalAgent.tsx(119,10): error TS2339: Property 'state' does not exist on type 'AgentErrorBoundary'.
+src/components/GlobalAgent.tsx(131,14): error TS2339: Property 'state' does not exist on type 'AgentErrorBoundary'.
+src/components/GlobalAgent.tsx(134,17): error TS2339: Property 'props' does not exist on type 'AgentErrorBoundary'.
+src/components/landing/FeaturesSection.tsx(126,42): error TS2322: Type '{ key: string; feature: FeatureItem; }' is not assignable to type '{ feature: FeatureItem; }'.
+  Property 'key' does not exist on type '{ feature: FeatureItem; }'.
+src/components/landing/FeaturesSection.tsx(150,42): error TS2322: Type '{ key: string; feature: FeatureItem; }' is not assignable to type '{ feature: FeatureItem; }'.
+  Property 'key' does not exist on type '{ feature: FeatureItem; }'.
+src/components/mvpblocks/congusted-pricing.tsx(10,18): error TS2307: Cannot find module 'next/link' or its corresponding type declarations.
+src/components/mvpblocks/feature-3.tsx(112,28): error TS2322: Type '{ key: string; feature: FeatureItem; }' is not assignable to type '{ feature: FeatureItem; }'.
+  Property 'key' does not exist on type '{ feature: FeatureItem; }'.
+src/components/mvpblocks/feature-3.tsx(137,28): error TS2322: Type '{ key: string; feature: FeatureItem; }' is not assignable to type '{ feature: FeatureItem; }'.
+  Property 'key' does not exist on type '{ feature: FeatureItem; }'.
+src/components/mvpblocks/footer-standard.tsx(3,18): error TS2307: Cannot find module 'next/link' or its corresponding type declarations.
+src/components/mvpblocks/footer-standard.tsx(4,19): error TS2307: Cannot find module 'next/image' or its corresponding type declarations.
+src/lib/firebase.ts(5,25): error TS2339: Property 'env' does not exist on type 'ImportMeta'.
+src/lib/firebase.ts(6,29): error TS2339: Property 'env' does not exist on type 'ImportMeta'.
+src/lib/firebase.ts(7,28): error TS2339: Property 'env' does not exist on type 'ImportMeta'.
+src/lib/firebase.ts(8,32): error TS2339: Property 'env' does not exist on type 'ImportMeta'.
+src/lib/firebase.ts(9,36): error TS2339: Property 'env' does not exist on type 'ImportMeta'.
+src/lib/firebase.ts(10,24): error TS2339: Property 'env' does not exist on type 'ImportMeta'.
+src/lib/firebase.ts(11,32): error TS2339: Property 'env' does not exist on type 'ImportMeta'.

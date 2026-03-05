@@ -134,6 +134,16 @@ async function initDb() {
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   )`;
 
+  await sql`CREATE TABLE IF NOT EXISTS monthly_revenue (
+    id SERIAL PRIMARY KEY,
+    admin_id INTEGER,
+    month TEXT NOT NULL,
+    year INTEGER NOT NULL,
+    amount REAL DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(admin_id, month, year)
+  )`;
+
   // Seed initial data if empty
   const userResults = await sql`SELECT COUNT(*) as count FROM users`;
   if (parseInt(userResults[0].count as string) === 0) {
@@ -546,6 +556,52 @@ VALUES(${runId}, ${user.id}, ${grossPay + ffBonus}, ${netPay}, ${JSON.stringify(
       await sql`INSERT INTO benefit_claims(user_id, amount, category) VALUES(${userId}, ${amount}, ${category})`;
 
       res.json({ success: true });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // Track Monthly Revenue
+  app.post('/api/revenue', async (req, res) => {
+    const { admin_id, month, year, amount } = req.body;
+    try {
+      await sql`
+        INSERT INTO monthly_revenue(admin_id, month, year, amount) 
+        VALUES(${admin_id}, ${month}, ${year}, ${amount})
+        ON CONFLICT(admin_id, month, year) 
+        DO UPDATE SET amount = EXCLUDED.amount
+      `;
+      res.json({ success: true });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.get('/api/revenue', async (req, res) => {
+    try {
+      const { admin_id } = req.query;
+      if (!admin_id) return res.status(400).json({ error: "admin_id required" });
+
+      const revenues = await sql`
+        SELECT * FROM monthly_revenue 
+        WHERE admin_id = ${admin_id} 
+        ORDER BY year DESC, 
+                 CASE month
+                   WHEN 'January' THEN 1 WHEN 'Jan' THEN 1
+                   WHEN 'February' THEN 2 WHEN 'Feb' THEN 2
+                   WHEN 'March' THEN 3 WHEN 'Mar' THEN 3
+                   WHEN 'April' THEN 4 WHEN 'Apr' THEN 4
+                   WHEN 'May' THEN 5
+                   WHEN 'June' THEN 6 WHEN 'Jun' THEN 6
+                   WHEN 'July' THEN 7 WHEN 'Jul' THEN 7
+                   WHEN 'August' THEN 8 WHEN 'Aug' THEN 8
+                   WHEN 'September' THEN 9 WHEN 'Sep' THEN 9
+                   WHEN 'October' THEN 10 WHEN 'Oct' THEN 10
+                   WHEN 'November' THEN 11 WHEN 'Nov' THEN 11
+                   WHEN 'December' THEN 12 WHEN 'Dec' THEN 12
+                   ELSE 0 END DESC
+      `;
+      res.json(revenues);
     } catch (e: any) {
       res.status(500).json({ error: e.message });
     }

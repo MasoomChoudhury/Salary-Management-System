@@ -11,16 +11,13 @@ import {
 } from 'recharts';
 import { Card } from './dashboard-card';
 
-const data = [
-    { name: 'Jan', revenue: 45000, payroll: 32000 },
-    { name: 'Feb', revenue: 52000, payroll: 32000 },
-    { name: 'Mar', revenue: 48000, payroll: 35000 },
-    { name: 'Apr', revenue: 61000, payroll: 35000 },
-    { name: 'May', revenue: 55000, payroll: 38000 },
-    { name: 'Jun', revenue: 67000, payroll: 38000 },
-];
+export interface RevenueDataPoint {
+    name: string;
+    revenue: number;
+    payroll: number;
+}
 
-export const RevenueChart = () => {
+export const RevenueChart = ({ data }: { data: RevenueDataPoint[] }) => {
     return (
         <Card title="Financial Overview" description="Revenue vs Payroll for the last 6 months">
             <div className="h-[300px] w-full mt-4">

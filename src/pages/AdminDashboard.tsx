@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { Routes, Route, useLocation } from "react-router-dom";
 import {
   Users,
-  DollarSign,
+  IndianRupee,
   Bot,
   LogOut,
   Search,
@@ -132,12 +132,54 @@ function HomeView({ adminId }: { adminId: number }) {
     payrollMonth: 'None',
     payrollYear: ''
   });
+  const [chartData, setChartData] = useState<any[]>([]);
+  const [isRevenueModalOpen, setIsRevenueModalOpen] = useState(false);
+
+  const fetchData = async () => {
+    try {
+      // Fetch stats
+      const statsRes = await fetch(`/api/admin/stats?admin_id=${adminId}`);
+      if (statsRes.ok) setStats(await statsRes.json());
+
+      // Fetch chart data
+      const [payRes, revRes] = await Promise.all([
+        fetch(`/api/payroll/runs?admin_id=${adminId}`),
+        fetch(`/api/revenue?admin_id=${adminId}`)
+      ]);
+      const payRuns = payRes.ok ? await payRes.json() : [];
+      const revenues = revRes.ok ? await revRes.json() : [];
+
+      const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      const fullMonths = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+      const d = new Date();
+      const recentMonths = [];
+      for (let i = 5; i >= 0; i--) {
+        const tempDate = new Date(d.getFullYear(), d.getMonth() - i, 1);
+        recentMonths.push({
+          month: months[tempDate.getMonth()],
+          year: tempDate.getFullYear(),
+          fullMonth: fullMonths[tempDate.getMonth()]
+        });
+      }
+
+      const formattedData = recentMonths.map(rm => {
+        const payMatch = payRuns.find((p: any) => p.month === rm.fullMonth && p.year === rm.year);
+        const revMatch = revenues.find((r: any) => r.month === rm.fullMonth && r.year === rm.year);
+        return {
+          name: rm.month,
+          payroll: payMatch ? payMatch.total_amount : 0,
+          revenue: revMatch ? revMatch.amount : 0
+        };
+      });
+      setChartData(formattedData);
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   useEffect(() => {
-    fetch(`/api/admin/stats?admin_id=${adminId}`)
-      .then(res => res.json())
-      .then(data => setStats(data))
-      .catch(console.error);
+    fetchData();
   }, [adminId]);
 
   return (
@@ -147,13 +189,21 @@ function HomeView({ adminId }: { adminId: number }) {
       exit={{ opacity: 0, y: -20 }}
       className="space-y-4 sm:space-y-6"
     >
-      <div className="px-2 sm:px-0">
-        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-          Welcome Admin
-        </h1>
-        <p className="text-muted-foreground text-sm sm:text-base">
-          Here's what's happening with your platform today.
-        </p>
+      <div className="flex items-center justify-between px-2 sm:px-0">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+            Welcome Admin
+          </h1>
+          <p className="text-muted-foreground text-sm sm:text-base">
+            Here's what's happening with your platform today.
+          </p>
+        </div>
+        <button
+          onClick={() => setIsRevenueModalOpen(true)}
+          className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 py-2"
+        >
+          Update Revenue
+        </button>
       </div>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
@@ -166,9 +216,9 @@ function HomeView({ adminId }: { adminId: number }) {
         />
         <StatCard
           title="Active Payroll"
-          value={`₹${(stats.activePayrollAmount / 1000000).toFixed(1)}M`}
+          value={`₹${(stats.activePayrollAmount / 100000).toFixed(2)}L`}
           subValue={`${stats.payrollMonth} ${stats.payrollYear}`}
-          icon={DollarSign}
+          icon={IndianRupee}
         />
         <StatCard
           title="Compliance Score"
@@ -187,7 +237,7 @@ function HomeView({ adminId }: { adminId: number }) {
 
       <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <RevenueChart />
+          <RevenueChart data={chartData} />
         </div>
         <div>
           <QuickActions />
@@ -198,6 +248,13 @@ function HomeView({ adminId }: { adminId: number }) {
         <RecentActivity />
         <SystemStatus />
       </div>
+
+      <RevenueModal
+        isOpen={isRevenueModalOpen}
+        onClose={() => setIsRevenueModalOpen(false)}
+        onSuccess={fetchData}
+        adminId={adminId}
+      />
     </motion.div>
   );
 }
@@ -226,6 +283,8 @@ function EmployeesView({ adminId }: { adminId: number }) {
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<any>(null);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [selectedHistoryEmployee, setSelectedHistoryEmployee] = useState<any>(null);
 
   const fetchEmployees = () => {
     setLoading(true);
@@ -256,6 +315,11 @@ function EmployeesView({ adminId }: { adminId: number }) {
   const handleEditClick = (emp: any) => {
     setSelectedEmployee(emp);
     setIsModalOpen(true);
+  };
+
+  const handleHistoryClick = (emp: any) => {
+    setSelectedHistoryEmployee(emp);
+    setIsHistoryModalOpen(true);
   };
 
   return (
@@ -289,6 +353,12 @@ function EmployeesView({ adminId }: { adminId: number }) {
         onClose={() => setIsModalOpen(false)}
         onSuccess={fetchEmployees}
         adminId={adminId}
+      />
+
+      <SalaryHistoryModal
+        isOpen={isHistoryModalOpen}
+        employee={selectedHistoryEmployee}
+        onClose={() => setIsHistoryModalOpen(false)}
       />
 
       <div className="rounded-xl border bg-card text-card-foreground shadow-sm overflow-hidden">
@@ -331,7 +401,10 @@ function EmployeesView({ adminId }: { adminId: number }) {
                         {emp.name.charAt(0)}
                       </div>
                       <div className="grid gap-0.5">
-                        <p className="font-medium text-foreground leading-none">
+                        <p
+                          className="font-medium text-primary hover:underline cursor-pointer leading-none"
+                          onClick={() => handleHistoryClick(emp)}
+                        >
                           {emp.name}
                         </p>
                         <p className="text-xs text-muted-foreground leading-none">
@@ -485,7 +558,7 @@ function EmployeeModal({ isOpen, onClose, onSuccess, employee, adminId }: any) {
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="bg-card text-card-foreground w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden border"
+        className="bg-card text-card-foreground w-full max-w-2xl max-h-[90vh] rounded-2xl shadow-2xl overflow-hidden border flex flex-col"
       >
         <div className="p-6 border-b flex items-center justify-between bg-muted/30">
           <h3 className="text-xl font-semibold tracking-tight">
@@ -495,180 +568,182 @@ function EmployeeModal({ isOpen, onClose, onSuccess, employee, adminId }: any) {
             <Zap className="size-5 rotate-45" />
           </button>
         </div>
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Full Name</label>
-              <input
-                required
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                value={formData.name}
-                onChange={e => setFormData({ ...formData, name: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Email Address</label>
-              <input
-                required
-                type="email"
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                value={formData.email}
-                onChange={e => setFormData({ ...formData, email: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Department</label>
-              <input
-                required
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                value={formData.department}
-                onChange={e => setFormData({ ...formData, department: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Annual CTC (₹)</label>
-              <input
-                required
-                type="number"
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                value={formData.base_salary}
-                onChange={e => setFormData({ ...formData, base_salary: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Tax Regime</label>
-              <select
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                value={formData.tax_regime}
-                onChange={e => setFormData({ ...formData, tax_regime: e.target.value })}
-              >
-                <option value="new">New Regime (2026)</option>
-                <option value="old">Old Regime</option>
-              </select>
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">OT Hours</label>
-              <input
-                type="number"
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                value={formData.ot_hours}
-                onChange={e => setFormData({ ...formData, ot_hours: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Status</label>
-              <select
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                value={formData.status}
-                onChange={e => setFormData({ ...formData, status: e.target.value })}
-              >
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-                <option value="exiting">Exiting (F&F)</option>
-              </select>
-            </div>
-            {formData.status === 'exiting' && (
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+          <div className="p-6 space-y-6 overflow-y-auto flex-1">
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium">Exit Date</label>
+                <label className="text-sm font-medium">Full Name</label>
                 <input
-                  type="datetime-local"
+                  required
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  value={formData.name}
+                  onChange={e => setFormData({ ...formData, name: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Email Address</label>
+                <input
+                  required
+                  type="email"
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  value={formData.email}
+                  onChange={e => setFormData({ ...formData, email: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Department</label>
+                <input
+                  required
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  value={formData.department}
+                  onChange={e => setFormData({ ...formData, department: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Annual CTC (₹)</label>
+                <input
+                  required
+                  type="number"
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  value={formData.base_salary}
+                  onChange={e => setFormData({ ...formData, base_salary: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Tax Regime</label>
+                <select
                   className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                  value={formData.marked_for_exit_at}
-                  onChange={e => setFormData({ ...formData, marked_for_exit_at: e.target.value })}
-                />
+                  value={formData.tax_regime}
+                  onChange={e => setFormData({ ...formData, tax_regime: e.target.value })}
+                >
+                  <option value="new">New Regime (2026)</option>
+                  <option value="old">Old Regime</option>
+                </select>
               </div>
-            )}
-          </div>
-
-          <div className="p-4 bg-muted/50 rounded-xl border space-y-4">
-            <h4 className="text-sm font-semibold flex items-center gap-2">
-              <Zap className="size-4 text-primary" />
-              Indian Labour Code Compliance (Monthly Components)
-            </h4>
-            <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
-                <label className="text-xs font-medium">DA (₹)</label>
+                <label className="text-sm font-medium">OT Hours</label>
                 <input
                   type="number"
-                  className="flex h-8 w-full rounded-md border border-input bg-background px-2 py-1 text-xs shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                  value={formData.da}
-                  onChange={e => setFormData({ ...formData, da: e.target.value })}
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  value={formData.ot_hours}
+                  onChange={e => setFormData({ ...formData, ot_hours: e.target.value })}
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-medium">HRA (₹)</label>
-                <input
-                  type="number"
-                  className="flex h-8 w-full rounded-md border border-input bg-background px-2 py-1 text-xs shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                  value={formData.hra}
-                  onChange={e => setFormData({ ...formData, hra: e.target.value })}
-                />
+                <label className="text-sm font-medium">Status</label>
+                <select
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  value={formData.status}
+                  onChange={e => setFormData({ ...formData, status: e.target.value })}
+                >
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                  <option value="exiting">Exiting (F&F)</option>
+                </select>
+              </div>
+              {formData.status === 'exiting' && (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Exit Date</label>
+                  <input
+                    type="datetime-local"
+                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    value={formData.marked_for_exit_at}
+                    onChange={e => setFormData({ ...formData, marked_for_exit_at: e.target.value })}
+                  />
+                </div>
+              )}
+            </div>
+
+            <div className="p-4 bg-muted/50 rounded-xl border space-y-4">
+              <h4 className="text-sm font-semibold flex items-center gap-2">
+                <Zap className="size-4 text-primary" />
+                Indian Labour Code Compliance (Monthly Components)
+              </h4>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <label className="text-xs font-medium">DA (₹)</label>
+                  <input
+                    type="number"
+                    className="flex h-8 w-full rounded-md border border-input bg-background px-2 py-1 text-xs shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    value={formData.da}
+                    onChange={e => setFormData({ ...formData, da: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-medium">HRA (₹)</label>
+                  <input
+                    type="number"
+                    className="flex h-8 w-full rounded-md border border-input bg-background px-2 py-1 text-xs shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    value={formData.hra}
+                    onChange={e => setFormData({ ...formData, hra: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-medium">Special Allowance (₹)</label>
+                  <input
+                    type="number"
+                    className="flex h-8 w-full rounded-md border border-input bg-background px-2 py-1 text-xs shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    value={formData.special_allowance}
+                    onChange={e => setFormData({ ...formData, special_allowance: e.target.value })}
+                  />
+                </div>
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-medium">Special Allowance (₹)</label>
-                <input
-                  type="number"
+                <label className="text-xs font-medium">State (for PT/LWF)</label>
+                <select
                   className="flex h-8 w-full rounded-md border border-input bg-background px-2 py-1 text-xs shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                  value={formData.special_allowance}
-                  onChange={e => setFormData({ ...formData, special_allowance: e.target.value })}
-                />
+                  value={formData.state}
+                  onChange={e => setFormData({ ...formData, state: e.target.value })}
+                >
+                  <option value="Karnataka">Karnataka</option>
+                  <option value="Maharashtra">Maharashtra</option>
+                  <option value="Tamil Nadu">Tamil Nadu</option>
+                  <option value="Delhi">Delhi</option>
+                </select>
               </div>
             </div>
-            <div className="space-y-2">
-              <label className="text-xs font-medium">State (for PT/LWF)</label>
-              <select
-                className="flex h-8 w-full rounded-md border border-input bg-background px-2 py-1 text-xs shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                value={formData.state}
-                onChange={e => setFormData({ ...formData, state: e.target.value })}
-              >
-                <option value="Karnataka">Karnataka</option>
-                <option value="Maharashtra">Maharashtra</option>
-                <option value="Tamil Nadu">Tamil Nadu</option>
-                <option value="Delhi">Delhi</option>
-              </select>
+
+            <div className="p-4 bg-muted/50 rounded-xl border space-y-4">
+              <h4 className="text-sm font-semibold flex items-center gap-2">
+                <Zap className="size-4 text-primary" />
+                Bank & Disbursal Information
+              </h4>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <label className="text-xs font-medium">Account Number</label>
+                  <input
+                    type="text"
+                    className="flex h-8 w-full rounded-md border border-input bg-background px-2 py-1 text-xs shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    value={formData.bank_account_number}
+                    onChange={e => setFormData({ ...formData, bank_account_number: e.target.value })}
+                    placeholder="e.g. 1029384756"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-medium">IFSC Code</label>
+                  <input
+                    type="text"
+                    className="flex h-8 w-full rounded-md border border-input bg-background px-2 py-1 text-xs shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring uppercase"
+                    value={formData.ifsc_code}
+                    onChange={e => setFormData({ ...formData, ifsc_code: e.target.value.toUpperCase() })}
+                    placeholder="e.g. SBIN0001234"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-medium">Bank Branch</label>
+                  <input
+                    type="text"
+                    className="flex h-8 w-full rounded-md border border-input bg-background px-2 py-1 text-xs shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    value={formData.bank_branch}
+                    onChange={e => setFormData({ ...formData, bank_branch: e.target.value })}
+                    placeholder="e.g. MG Road, Bengaluru"
+                  />
+                </div>
+              </div>
             </div>
           </div>
 
-          <div className="p-4 bg-muted/50 rounded-xl border space-y-4">
-            <h4 className="text-sm font-semibold flex items-center gap-2">
-              <Zap className="size-4 text-primary" />
-              Bank & Disbursal Information
-            </h4>
-            <div className="grid grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <label className="text-xs font-medium">Account Number</label>
-                <input
-                  type="text"
-                  className="flex h-8 w-full rounded-md border border-input bg-background px-2 py-1 text-xs shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                  value={formData.bank_account_number}
-                  onChange={e => setFormData({ ...formData, bank_account_number: e.target.value })}
-                  placeholder="e.g. 1029384756"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-xs font-medium">IFSC Code</label>
-                <input
-                  type="text"
-                  className="flex h-8 w-full rounded-md border border-input bg-background px-2 py-1 text-xs shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring uppercase"
-                  value={formData.ifsc_code}
-                  onChange={e => setFormData({ ...formData, ifsc_code: e.target.value.toUpperCase() })}
-                  placeholder="e.g. SBIN0001234"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-xs font-medium">Bank Branch</label>
-                <input
-                  type="text"
-                  className="flex h-8 w-full rounded-md border border-input bg-background px-2 py-1 text-xs shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                  value={formData.bank_branch}
-                  onChange={e => setFormData({ ...formData, bank_branch: e.target.value })}
-                  placeholder="e.g. MG Road, Bengaluru"
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-3 pt-4">
+          <div className="flex justify-end gap-3 p-6 border-t bg-muted/30">
             <button
               type="button"
               onClick={onClose}
@@ -842,7 +917,7 @@ function PayrollView({ adminId }: { adminId: number }) {
       {!result ? (
         <div className="rounded-xl border bg-card text-card-foreground shadow-sm p-8 text-center">
           <div className="flex aspect-square size-16 items-center justify-center rounded-full bg-primary/10 text-primary mx-auto mb-6">
-            <DollarSign className="size-8" />
+            <IndianRupee className="size-8" />
           </div>
           <h2 className="text-xl font-semibold tracking-tight mb-2">
             Ready to run payroll?
@@ -891,7 +966,7 @@ function PayrollView({ adminId }: { adminId: number }) {
                 Total Payout
               </p>
               <p className="text-2xl font-bold font-mono tracking-tight">
-                $
+                ₹
                 {result.totalAmount.toLocaleString(undefined, {
                   minimumFractionDigits: 2,
                 })}
@@ -961,17 +1036,17 @@ function DocumentsView({ adminId }: { adminId: number }) {
     doc.setFontSize(12);
     const text = `Dear ${emp.name},
 
-We are pleased to offer you the position of ${emp.department} at PayPulse Enterprise. 
+          We are pleased to offer you the position of ${emp.department} at PayPulse Enterprise.
 
-Your annual CTC will be INR ${emp.base_salary.toLocaleString()}. 
+          Your annual CTC will be INR ${emp.base_salary.toLocaleString()}.
 
-This appointment is subject to the new Indian Labour Code 2026 guidelines. Your compensation structure is designed to ensure that at least 50% of your total remuneration constitutes 'Wages' for statutory purposes.
+          This appointment is subject to the new Indian Labour Code 2026 guidelines. Your compensation structure is designed to ensure that at least 50% of your total remuneration constitutes 'Wages' for statutory purposes.
 
-Please sign and return a copy of this letter as a token of your acceptance.
+          Please sign and return a copy of this letter as a token of your acceptance.
 
-Yours Sincerely,
-HR Department
-PayPulse Enterprise`;
+          Yours Sincerely,
+          HR Department
+          PayPulse Enterprise`;
 
     const splitText = doc.splitTextToSize(text, 170);
     doc.text(splitText, 20, 90);
@@ -1323,5 +1398,253 @@ function ReviewInvestmentsView() {
         )}
       </div>
     </motion.div>
+  );
+}
+
+function RevenueModal({
+  isOpen,
+  onClose,
+  onSuccess,
+  adminId
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onSuccess: () => void;
+  adminId: number;
+}) {
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    month: new Date().toLocaleString('default', { month: 'long' }),
+    year: new Date().getFullYear().toString(),
+    amount: ''
+  });
+
+  if (!isOpen) return null;
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const res = await fetch('/api/revenue', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          admin_id: adminId,
+          month: formData.month,
+          year: parseInt(formData.year),
+          amount: parseFloat(formData.amount)
+        })
+      });
+      if (!res.ok) throw new Error(await res.text());
+      onSuccess();
+      onClose();
+    } catch (e) {
+      console.error(e);
+      alert('Failed to update revenue');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  const years = [new Date().getFullYear() - 1, new Date().getFullYear(), new Date().getFullYear() + 1];
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="bg-card text-card-foreground w-full max-w-md rounded-2xl shadow-2xl overflow-hidden border"
+      >
+        <div className="p-6 border-b flex items-center justify-between bg-muted/30">
+          <h3 className="text-lg font-semibold tracking-tight">Update Monthly Revenue</h3>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
+            <Zap className="size-5 rotate-45" />
+          </button>
+        </div>
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Month</label>
+              <select
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                value={formData.month}
+                onChange={e => setFormData({ ...formData, month: e.target.value })}
+              >
+                {months.map(m => <option key={m} value={m}>{m}</option>)}
+              </select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Year</label>
+              <select
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                value={formData.year}
+                onChange={e => setFormData({ ...formData, year: e.target.value })}
+              >
+                {years.map(y => <option key={y} value={y}>{y}</option>)}
+              </select>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Gross Revenue (₹)</label>
+            <input
+              required
+              type="number"
+              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              value={formData.amount}
+              onChange={e => setFormData({ ...formData, amount: e.target.value })}
+              placeholder="e.g. 500000"
+            />
+          </div>
+          <div className="flex justify-end gap-3 pt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 py-2"
+            >
+              {loading ? "Saving..." : "Save Revenue"}
+            </button>
+          </div>
+        </form>
+      </motion.div>
+    </div>
+  );
+}
+
+function SalaryHistoryModal({
+  isOpen,
+  onClose,
+  employee
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  employee: any;
+}) {
+  const [payslips, setPayslips] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [selectedFY, setSelectedFY] = useState(
+    new Date().getMonth() >= 3
+      ? `${new Date().getFullYear()}-${(new Date().getFullYear() + 1).toString().slice(-2)}`
+      : `${new Date().getFullYear() - 1}-${new Date().getFullYear().toString().slice(-2)}`
+  );
+
+  useEffect(() => {
+    if (isOpen && employee?.id) {
+      setLoading(true);
+      fetch(`/api/payslips/${employee.id}`)
+        .then(res => res.json())
+        .then(data => {
+          setPayslips(data);
+          setLoading(false);
+        })
+        .catch(console.error);
+    }
+  }, [isOpen, employee]);
+
+  if (!isOpen || !employee) return null;
+
+  // Filter by Indian FY (April 1 to March 31)
+  const filteredPayslips = payslips.filter(p => {
+    const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December", "Jan", "Feb", "Mar", "Apr", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const monthIndex = monthNames.findIndex(m => m.startsWith(p.month.substring(0, 3))) % 12;
+
+    // FY format is YYYY-YY
+    const startYear = parseInt(selectedFY.split('-')[0]);
+
+    if (monthIndex >= 3) {
+      // April to December
+      return p.year === startYear;
+    } else {
+      // January to March
+      return p.year === startYear + 1;
+    }
+  });
+
+  const totalPaid = filteredPayslips.reduce((acc, curr) => acc + curr.net_pay, 0);
+
+  // Generate a list of available FYs (e.g., current year +/- 1)
+  const currentYear = new Date().getFullYear();
+  const fys = [
+    `${currentYear - 2}-${(currentYear - 1).toString().slice(2)}`,
+    `${currentYear - 1}-${currentYear.toString().slice(2)}`,
+    `${currentYear}-${(currentYear + 1).toString().slice(2)}`,
+    `${currentYear + 1}-${(currentYear + 2).toString().slice(2)}`,
+  ];
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="bg-card text-card-foreground w-full max-w-3xl max-h-[90vh] rounded-2xl shadow-2xl overflow-hidden border flex flex-col"
+      >
+        <div className="p-6 border-b flex items-center justify-between bg-muted/30">
+          <div>
+            <h3 className="text-xl font-semibold tracking-tight">{employee.name}'s Salary History</h3>
+            <p className="text-sm text-muted-foreground">{employee.email}</p>
+          </div>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
+            <Zap className="size-5 rotate-45" />
+          </button>
+        </div>
+
+        <div className="p-6 border-b bg-muted/10 flex justify-between items-center flex-wrap gap-4">
+          <div className="space-y-1">
+            <label className="text-sm font-medium">Financial Year</label>
+            <select
+              className="flex h-9 w-48 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              value={selectedFY}
+              onChange={e => setSelectedFY(e.target.value)}
+            >
+              {fys.map(fy => <option key={fy} value={fy}>FY {fy}</option>)}
+            </select>
+          </div>
+          <div className="text-right">
+            <p className="text-sm font-medium text-muted-foreground">Total Net Paid (FY {selectedFY})</p>
+            <p className="text-2xl font-bold text-primary">₹{totalPaid.toLocaleString()}</p>
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-0">
+          {loading ? (
+            <div className="p-12 text-center text-muted-foreground">Loading history...</div>
+          ) : filteredPayslips.length === 0 ? (
+            <div className="p-12 text-center text-muted-foreground">No salary records found for this Financial Year.</div>
+          ) : (
+            <table className="w-full text-left text-sm">
+              <thead className="bg-muted/50 text-muted-foreground font-medium border-b sticky top-0 backdrop-blur-md">
+                <tr>
+                  <th className="px-6 py-3 font-medium">Month</th>
+                  <th className="px-6 py-3 font-medium text-right">Gross Pay</th>
+                  <th className="px-6 py-3 font-medium text-right">Deductions</th>
+                  <th className="px-6 py-3 font-medium text-right">Net Pay</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {filteredPayslips.map(p => {
+                  const deductions = JSON.parse(p.deductions || '{}');
+                  const totalDeductions = Object.values(deductions).reduce((a: any, b: any) => a + Number(b), 0) as number;
+                  return (
+                    <tr key={p.id} className="hover:bg-muted/50 transition-colors">
+                      <td className="px-6 py-4 font-medium">{p.month} {p.year}</td>
+                      <td className="px-6 py-4 text-right">₹{p.gross_pay.toLocaleString()}</td>
+                      <td className="px-6 py-4 text-right text-rose-500">-₹{totalDeductions.toLocaleString()}</td>
+                      <td className="px-6 py-4 text-right font-bold text-emerald-600">₹{p.net_pay.toLocaleString()}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </motion.div>
+    </div>
   );
 }
