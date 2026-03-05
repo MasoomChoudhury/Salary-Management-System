@@ -288,6 +288,22 @@ async function startServer() {
     try {
       const users = await sql`SELECT * FROM users WHERE status = 'active' AND role = 'employee' AND admin_id = ${admin_id}`;
 
+      // Check for existing runs to prevent duplicates
+      const existingRuns = await sql`SELECT * FROM payroll_runs WHERE month = ${month} AND year = ${year} AND admin_id = ${admin_id}`;
+
+      if (existingRuns.length > 0) {
+        const paidRun = existingRuns.find(r => r.status === 'paid');
+        if (paidRun) {
+          return res.status(400).json({ error: 'Payroll has already been processed and paid for this month.' });
+        }
+
+        // Delete existing draft runs and their payslips
+        for (const run of existingRuns) {
+          await sql`DELETE FROM payslips WHERE payroll_run_id = ${run.id}`;
+          await sql`DELETE FROM payroll_runs WHERE id = ${run.id}`;
+        }
+      }
+
       // Save draft
       const runResults = await sql`
         INSERT INTO payroll_runs(month, year, status, admin_id) VALUES(${month}, ${year}, 'draft', ${admin_id})
